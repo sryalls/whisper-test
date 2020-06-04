@@ -20,6 +20,7 @@ suggestions_schema = {"type": "object",
                           "risk": {"type": "number", "enum": [1, 2, 3]}
                       }}
 
+
 @app.route('/user/<uname>', methods=['POST'])
 def create_user(uname):
     # check for existing user
