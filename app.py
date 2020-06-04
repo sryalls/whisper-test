@@ -2,7 +2,9 @@ from flask import Flask, request
 from flask_api import status
 from jsonschema import validate
 
-app = Flask(__name__)
+import flaskr
+
+app = flaskr.create_app()
 
 
 investments_schema = {"type": "object",
