@@ -10,7 +10,7 @@ CREATE TABLE investment (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL,
   portfolio TEXT NOT NULL,
-  duration REAL NOT NULL,
+  duration INTEGER NOT NULL,
   principal REAL NOT NULL,
   FOREIGN KEY (username) REFERENCES user (username),
   FOREIGN KEY (portfolio) REFERENCES portfolio (id)
