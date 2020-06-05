@@ -1,18 +1,18 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_api import status
 from jsonschema import validate
 import flaskr
 
 from users.users import ensure_exists
-
+from investments.investments import suggest
 app = flaskr.create_app()
 
 
 investments_schema = {"type": "object",
                       "properties": {
                           "user": {"type": "string"},
-                          "years": {"type": "number"},
-                          "principle": {"type": "number"},
+                          "years": {"type": "integer"},
+                          "principal": {"type": "number"},
                           "portfolio": {"type": "string",
                                         "enum": ["A", "B", "C"]}
                       }}
@@ -20,7 +20,7 @@ suggestions_schema = {"type": "object",
                       "properties": {
                           "years": {"type": "number"},
                           "principle": {"type": "number"},
-                          "risk": {"type": "number", "enum": [1, 2, 3]}
+                          "risk": {"type": "integer", "enum": [1, 2, 3]}
                       }}
 
 
@@ -38,7 +38,7 @@ def create_user(uname):
         # return confirmation of already existing user
         return f"{uname} already exists", status.HTTP_202_ACCEPTED
     except Exception:
-        return f"Internal Server Error:", status.HTTP_500_INTERNAL_SERVER_ERROR
+        return "Internal Server Error:", status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @app.route('/suggestion', methods=['GET'])
@@ -46,10 +46,16 @@ def get_suggestions():
     # check JSON schema
     valid_req, req_data = _json_from_request(request, suggestions_schema)
     if not valid_req:
-        return req_data
+        return "Invalid request data", req_data
 
     # run suggestion algorithm based on JSON contents
-    return "suggestions for user"
+    try:
+        projections = suggest(req_data['principal'],
+                              req_data['risk'],
+                              req_data['years'])
+        return jsonify(projections), status.HTTP_200_OK
+    except Exception as e:
+        return f"Internal Server Error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @app.route('/investments/<uname>', methods=['GET', 'POST'])
@@ -74,8 +80,8 @@ def investments():
 def _json_from_request(request, test_schema):
     try:
         input_fields = request.get_json()
-        validate(request, test_schema)
-        return True, request
+        validate(input_fields, test_schema)
+        return True, input_fields
 
     except Exception:
         return False, status.HTTP_400_BAD_REQUEST
