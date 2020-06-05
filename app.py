@@ -1,8 +1,9 @@
 from flask import Flask, request
 from flask_api import status
 from jsonschema import validate
-
 import flaskr
+
+from users.users import ensure_exists
 
 app = flaskr.create_app()
 
@@ -23,15 +24,21 @@ suggestions_schema = {"type": "object",
                       }}
 
 
-@app.route('/user/<uname>', methods=['POST'])
+@app.route('/user/<string:uname>', methods=['POST'])
 def create_user(uname):
-    # check for existing user
-    # if doesn't already exist
-        # create user
-        # return confirmation
-    # else
+    try:
+        # check for existing user
+        user_created = ensure_exists(uname)
+        # if doesn't already exist
+        if not user_created["user_exists"]:
+            # create user
+            # return confirmation
+            return f"{uname} created", status.HTTP_201_CREATED
+        # else
         # return confirmation of already existing user
-    return "user details"
+        return f"{uname} already exists", status.HTTP_202_ACCEPTED
+    except Exception:
+        return f"Internal Server Error:", status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @app.route('/suggestion', methods=['GET'])
