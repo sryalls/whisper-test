@@ -3,14 +3,15 @@ from flask_api import status
 from jsonschema import validate
 import flaskr
 
-from users.users import ensure_exists
-from investments.investments import suggest
+from users.users import ensure_exists, check_exists
+from investments.investments import suggest as suggest_investment, \
+    create as create_investment, get as get_investments
+
 app = flaskr.create_app()
 
 
 investments_schema = {"type": "object",
                       "properties": {
-                          "user": {"type": "string"},
                           "years": {"type": "integer"},
                           "principal": {"type": "number"},
                           "portfolio": {"type": "string",
@@ -19,13 +20,13 @@ investments_schema = {"type": "object",
 suggestions_schema = {"type": "object",
                       "properties": {
                           "years": {"type": "number"},
-                          "principle": {"type": "number"},
+                          "principal": {"type": "number"},
                           "risk": {"type": "integer", "enum": [1, 2, 3]}
                       }}
 
 
 @app.route('/user/<string:uname>', methods=['POST'])
-def create_user(uname):
+def create_user(uname: str):
     try:
         # check for existing user
         user_created = ensure_exists(uname)
@@ -50,31 +51,48 @@ def get_suggestions():
 
     # run suggestion algorithm based on JSON contents
     try:
-        projections = suggest(req_data['principal'],
-                              req_data['risk'],
-                              req_data['years'])
+        projections = suggest_investment(req_data['principal'],
+                                         req_data['risk'],
+                                         req_data['years'])
         return jsonify(projections), status.HTTP_200_OK
     except Exception as e:
-        return f"Internal Server Error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR
+        return "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@app.route('/investments/<uname>', methods=['GET', 'POST'])
-def investments():
+@app.route('/investments/<string:uname>', methods=['GET', 'POST'])
+def investments(uname: str):
     # check for existing user
-    # if user doesn't exist
-        # return error response
+    try:
+        user_exists = check_exists(uname)
+        if not user_exists:
+            # if user doesn't exist return error response
+            return"Invalid user", status.HTTP_403_FORBIDDEN
+    except Exception:
+        return "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
 
     if request.method == 'POST':
         valid_req, req_data = _json_from_request(request, investments_schema)
         if not valid_req:
-            return req_data
+            return "Invalid request data", req_data
 
         # create investment based on input
-        _create_investment()
+        try:
+            create_investment(uname,
+                              req_data['principal'],
+                              req_data['years'],
+                              req_data['portfolio'])
+        except Exception:
+            return "Internal Server Error", \
+                   status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    # get list of investments for username
-    # return list of investments
-    return "list of investments"
+    try:
+        # get list of investments for username
+        user_investments = get_investments(uname)
+        # return list of investments
+        return jsonify(user_investments), status.HTTP_200_OK
+
+    except Exception:
+        return "Internal Server Error C", status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def _json_from_request(request, test_schema):
@@ -84,13 +102,8 @@ def _json_from_request(request, test_schema):
         return True, input_fields
 
     except Exception:
+        # if invalid JSON return error response
         return False, status.HTTP_400_BAD_REQUEST
-    # if invalid JSON
-        #  return error response
-
-
-def _create_investment():
-    pass
 
 
 if __name__ == '__main__':

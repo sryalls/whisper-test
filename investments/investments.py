@@ -1,6 +1,62 @@
 from flaskr.db import db
 
 
+def create(user: str, principal: float, duration: int, portfolio: str):
+    """
+    Insert an investment into the DB.
+
+    :param user:
+    :param principal:
+    :param duration:
+    :param portfolio:
+    """
+
+    db_connection = db.get_db()
+    db_connection.execute(
+        f"""
+        INSERT INTO investment (username, portfolio, duration, principal)
+        VALUES ("{user}", "{portfolio}", {duration}, {principal})
+        """)
+    db_connection.commit()
+
+
+def get(user: str):
+    """
+    Return the investments held by a given user.
+
+    :param user:
+    :return:
+    """
+
+    db_connection = db.get_db()
+
+    i_raw = db_connection.execute(
+        f"""
+        SELECT id, portfolio, duration, principal 
+        FROM investment
+        WHERE username = "{user}" 
+        ORDER BY id ASC
+        """
+    ).fetchall()
+
+    investments = []
+
+    for i_row in i_raw:
+        investment = {
+            'id': i_row[0],
+            'portfolio': i_row[1],
+            'duration': i_row[2],
+            'principal': i_row[3]
+        }
+
+        investments.append(investment)
+
+    if len(investments) == 0:
+        return f"No investments for {user}"
+
+    return investments
+
+
 def suggest(principal: float, desired_risk: int, duration: int):
     """
     Calculate the minimum and maximum projected returns for a given principal

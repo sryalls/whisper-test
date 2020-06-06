@@ -13,7 +13,7 @@ def ensure_exists(username: str):
 
     db_connection = db.get_db()
 
-    user_created = {"user_exists": _check_exists(username)}
+    user_created = {"user_exists": check_exists(username)}
 
     if not user_created["user_exists"]:
         db_connection.execute(
@@ -24,7 +24,7 @@ def ensure_exists(username: str):
     return user_created
 
 
-def _check_exists(username: str):
+def check_exists(username: str):
     """
     Check whether or not a given username exists in the database.
 
